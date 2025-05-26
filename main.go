@@ -2,16 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"os"
 	"sort"
 	"time"
 
-	"github.com/joho/godotenv"
+	"github.com/rs/zerolog/log"
 )
 
 type Member struct {
@@ -62,22 +59,14 @@ type RateInfo struct {
 type MemberStats map[int]map[int]map[string]RateInfo
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Printf("Warning: .env file not found: %v", err)
-	}
-
-	apiKey := flag.String("key", os.Getenv("TORN_API_KEY"), "Torn API key (or set TORN_API_KEY env var)")
-	baseURL := flag.String("base", "https://api.torn.com/v2", "Base URL for Torn API")
-	flag.Parse()
-
-	if *apiKey == "" {
-		log.Fatal("API key must be provided via -key flag or TORN_API_KEY env var")
-	}
+	setupEnvironment()
+	apiKey := getRequiredEnv("TORN_API_KEY")
+	baseURL := getEnvWithDefault("TORN_API_BASE_URL", "https://api.torn.com/v2")
 
 	// Step 1: fetch faction members and find those not in OC
-	members, err := fetchMembers(*baseURL, *apiKey)
+	members, err := fetchMembers(baseURL, apiKey)
 	if err != nil {
-		log.Fatalf("fetch members: %v", err)
+		log.Fatal().Err(err).Msg("fetch members")
 	}
 
 	inactiveIDs := make(map[int]Member)
@@ -93,9 +82,9 @@ func main() {
 	}
 
 	// Step 2: fetch all completed crimes
-	crimes, err := fetchAllCrimes(*baseURL, *apiKey)
+	crimes, err := fetchAllCrimes(baseURL, apiKey)
 	if err != nil {
-		log.Fatalf("fetch crimes: %v", err)
+		log.Fatal().Err(err).Msg("fetch crimes")
 	}
 
 	// Step 3: accumulate stats
@@ -183,16 +172,22 @@ func fetchAllCrimes(baseURL, key string) ([]Crime, error) {
 }
 
 func printReport(inactive map[int]Member, stats MemberStats) {
-	ids := make([]int, 0, len(inactive))
-	for id := range inactive {
-		ids = append(ids, id)
+	type memberEntry struct {
+		ID   int
+		Name string
 	}
-	sort.Ints(ids)
+	entries := make([]memberEntry, 0, len(inactive))
+	for id, m := range inactive {
+		entries = append(entries, memberEntry{ID: id, Name: m.Name})
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name < entries[j].Name
+	})
 
-	for _, id := range ids {
-		m := inactive[id]
+	for _, entry := range entries {
+		m := inactive[entry.ID]
 		fmt.Printf("\nMember: %s (%d) - Last seen: %s (%s)\n", m.Name, m.ID, m.LastAction.Status, m.LastAction.Relative)
-		memberStats, ok := stats[id]
+		memberStats, ok := stats[entry.ID]
 		if !ok {
 			fmt.Println("  No historical OC participation recorded.")
 			continue
