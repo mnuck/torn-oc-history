@@ -178,6 +178,7 @@ func fetchAllCrimes(baseURL, key string) ([]Crime, error) {
 }
 
 func printReport(selected map[int]Member, stats MemberStats) {
+	fmt.Printf("Report generated at: %s\n", time.Now().Format(time.RFC3339))
 	type memberEntry struct {
 		ID   int
 		Name string
