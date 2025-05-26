@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -63,38 +64,44 @@ func main() {
 	apiKey := getRequiredEnv("TORN_API_KEY")
 	baseURL := getEnvWithDefault("TORN_API_BASE_URL", "https://api.torn.com/v2")
 
-	// Step 1: fetch faction members and find those not in OC
+	allFlag := flag.Bool("all", false, "Include all faction members, not just those not in an OC")
+	flag.Parse()
+
 	members, err := fetchMembers(baseURL, apiKey)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fetch members")
 	}
 
-	inactiveIDs := make(map[int]Member)
-	for _, m := range members {
-		if !m.IsInOC {
-			inactiveIDs[m.ID] = m
+	selected := make(map[int]Member)
+	if *allFlag {
+		for _, m := range members {
+			selected[m.ID] = m
+		}
+	} else {
+		for _, m := range members {
+			if !m.IsInOC {
+				selected[m.ID] = m
+			}
 		}
 	}
 
-	if len(inactiveIDs) == 0 {
-		fmt.Println("All faction members are currently in an OC.")
+	if len(selected) == 0 {
+		fmt.Println("No matching faction members found.")
 		return
 	}
 
-	// Step 2: fetch all completed crimes
 	crimes, err := fetchAllCrimes(baseURL, apiKey)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fetch crimes")
 	}
 
-	// Step 3: accumulate stats
 	stats := make(MemberStats)
 
 	for _, crime := range crimes {
 		for _, slot := range crime.Slots {
 			uid := slot.User.ID
-			if _, ok := inactiveIDs[uid]; !ok {
-				continue // consider only inactive members
+			if _, ok := selected[uid]; !ok {
+				continue
 			}
 			if _, ok := stats[uid]; !ok {
 				stats[uid] = make(map[int]map[string]RateInfo)
@@ -106,7 +113,6 @@ func main() {
 				stats[uid][crime.Difficulty][slot.Position] = RateInfo{}
 			}
 			st := stats[uid][crime.Difficulty][slot.Position]
-			// update if this crime is more recent than stored one
 			if crime.ExecutedAt > st.ExecutedAt {
 				st.Rate = slot.CheckpointPassRate
 				st.ExecutedAt = crime.ExecutedAt
@@ -115,8 +121,7 @@ func main() {
 		}
 	}
 
-	// Step 4: output report
-	printReport(inactiveIDs, stats)
+	printReport(selected, stats)
 }
 
 func fetchMembers(baseURL, key string) ([]Member, error) {
@@ -171,13 +176,13 @@ func fetchAllCrimes(baseURL, key string) ([]Crime, error) {
 	return all, nil
 }
 
-func printReport(inactive map[int]Member, stats MemberStats) {
+func printReport(selected map[int]Member, stats MemberStats) {
 	type memberEntry struct {
 		ID   int
 		Name string
 	}
-	entries := make([]memberEntry, 0, len(inactive))
-	for id, m := range inactive {
+	entries := make([]memberEntry, 0, len(selected))
+	for id, m := range selected {
 		entries = append(entries, memberEntry{ID: id, Name: m.Name})
 	}
 	sort.Slice(entries, func(i, j int) bool {
@@ -185,7 +190,7 @@ func printReport(inactive map[int]Member, stats MemberStats) {
 	})
 
 	for _, entry := range entries {
-		m := inactive[entry.ID]
+		m := selected[entry.ID]
 		fmt.Printf("\nMember: %s (%d) - Last seen: %s (%s)\n", m.Name, m.ID, m.LastAction.Status, m.LastAction.Relative)
 		memberStats, ok := stats[entry.ID]
 		if !ok {
