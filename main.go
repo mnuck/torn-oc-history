@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -186,7 +187,7 @@ func printReport(selected map[int]Member, stats MemberStats) {
 		entries = append(entries, memberEntry{ID: id, Name: m.Name})
 	}
 	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Name < entries[j].Name
+		return strings.ToLower(entries[i].Name) < strings.ToLower(entries[j].Name)
 	})
 
 	for _, entry := range entries {
