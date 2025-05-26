@@ -10,6 +10,8 @@ import (
 	"os"
 	"sort"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 type Member struct {
@@ -60,6 +62,10 @@ type RateInfo struct {
 type MemberStats map[int]map[int]map[string]RateInfo
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Warning: .env file not found: %v", err)
+	}
+
 	apiKey := flag.String("key", os.Getenv("TORN_API_KEY"), "Torn API key (or set TORN_API_KEY env var)")
 	baseURL := flag.String("base", "https://api.torn.com/v2", "Base URL for Torn API")
 	flag.Parse()
