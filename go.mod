@@ -1,4 +1,4 @@
-module torncli
+module torn-oc-history
 
 go 1.22
 

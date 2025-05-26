@@ -63,7 +63,7 @@ type MemberStats map[int]map[int]map[string]RateInfo
 func main() {
 	setupEnvironment()
 	apiKey := getRequiredEnv("TORN_API_KEY")
-	baseURL := getEnvWithDefault("TORN_API_BASE_URL", "https://api.torn.com/v2")
+	baseURL := "https://api.torn.com/v2"
 
 	allFlag := flag.Bool("all", false, "Include all faction members, not just those not in an OC")
 	flag.Parse()
