@@ -45,7 +45,17 @@ kubectl apply -f /tmp/secret.yaml
 kubectl apply -f deployment.yaml
 ```
 
-## 5. Runtime configuration
+## 5. Rolling Restart
+
+To perform a rolling restart of the deployment (e.g., after updating secrets or configuration):
+
+```bash
+kubectl rollout restart deployment torn-oc-history
+```
+
+This ensures zero downtime by creating new pods before terminating old ones.
+
+## 6. Runtime configuration
 
 The container accepts flags. Example to run continuously every five minutes writing both reports:
 
