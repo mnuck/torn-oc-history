@@ -64,3 +64,14 @@ func (c *Client) UpdateRange(ctx context.Context, spreadsheetID, range_ string, 
 
 	return nil
 }
+
+func (c *Client) ClearRange(ctx context.Context, spreadsheetID, range_ string) error {
+	_, err := c.service.Spreadsheets.Values.Clear(spreadsheetID, range_, &sheets.ClearValuesRequest{}).
+		Context(ctx).
+		Do()
+	if err != nil {
+		return fmt.Errorf("failed to clear range: %w", err)
+	}
+
+	return nil
+}

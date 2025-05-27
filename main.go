@@ -233,6 +233,9 @@ func main() {
 			} else {
 				spreadsheetID := getRequiredEnv("SPREADSHEET_ID")
 				rowsNoOC := buildSheetRows(selectedNoOC, statsAll)
+				if err := sheetsClient.ClearRange(ctx, spreadsheetID, *nocRange); err != nil {
+					log.Error().Err(err).Msg("clear not-in-OC sheet")
+				}
 				if err := sheetsClient.UpdateRange(ctx, spreadsheetID, *nocRange, rowsNoOC); err != nil {
 					log.Error().Err(err).Msg("write not-in-OC sheet")
 				} else {
@@ -240,6 +243,9 @@ func main() {
 				}
 
 				rowsAll := buildSheetRows(selectedAll, statsAll)
+				if err := sheetsClient.ClearRange(ctx, spreadsheetID, *allRange); err != nil {
+					log.Error().Err(err).Msg("clear ALL sheet")
+				}
 				if err := sheetsClient.UpdateRange(ctx, spreadsheetID, *allRange, rowsAll); err != nil {
 					log.Error().Err(err).Msg("write ALL sheet")
 				} else {
@@ -250,11 +256,14 @@ func main() {
 			if *outputDest == "stdout" {
 				printReport(selected, statsAll)
 			} else {
-				rows := buildSheetRows(selected, statsAll)
 				spreadsheetID := getRequiredEnv("SPREADSHEET_ID")
+				rows := buildSheetRows(selected, statsAll)
 				targetRange := *nocRange
 				if *allFlag {
 					targetRange = *allRange
+				}
+				if err := sheetsClient.ClearRange(ctx, spreadsheetID, targetRange); err != nil {
+					log.Error().Err(err).Msg("clear sheet")
 				}
 				if err := sheetsClient.UpdateRange(ctx, spreadsheetID, targetRange, rows); err != nil {
 					log.Error().Err(err).Msg("write sheet")
