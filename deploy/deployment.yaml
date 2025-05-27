@@ -23,7 +23,14 @@ spec:
         - name: ENV
           value: "production"
         # Example of passing flags as args (uncomment & edit as desired)
-        # args: ["--output", "sheets", "--interval", "5m", "--both"]
+        # command: ["/app"]
+        # args: [
+        #   "--output", "sheets",
+        #   "--interval", "5m",
+        #   "--both",
+        #   "--range-noc", "a tab for the not in OC",
+        #   "--range-all", "a tab for the all members"
+        # ]
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
