@@ -19,9 +19,9 @@ This directory contains Kubernetes manifests and helper files for deploying the 
 # from repo root
 cd torn_oc_history
 # build
-docker build -t localhost:32000/torn-oc-history:0.0.1 -f build/Dockerfile .
+docker build -t localhost:32000/torn-oc-history:0.0.2 -f build/Dockerfile .
 # push
-docker push localhost:32000/torn-oc-history:0.0.1
+docker push localhost:32000/torn-oc-history:0.0.2
 ```
 
 Adjust the image tag/registry as appropriate and reflect the same tag inside `deployment.yaml`.
@@ -34,7 +34,7 @@ ENV_CONTENT=$(base64 -w 0 .env)
 CREDS_CONTENT=$(base64 -w 0 credentials.json)
 
 # insert into manifest
-awk -v env="$ENV_CONTENT" -v creds="$CREDS_CONTENT" '{gsub("your_base64_encoded_env_file_content_here",env); gsub("your_base64_encoded_credentials_json_content_here",creds); print}' torn-history-secret.yaml > /tmp/secret.yaml
+awk -v env="$ENV_CONTENT" -v creds="$CREDS_CONTENT" '{gsub("your_base64_encoded_env_file_content_here",env); gsub("your_base64_encoded_credentials_json_content_here",creds); print}' torn-history-secret.yaml > secret.yaml
 
 kubectl apply -f /tmp/secret.yaml
 ```
