@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: torn-oc-history
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: torn-oc-history
+  template:
+    metadata:
+      labels:
+        app: torn-oc-history
+    spec:
+      securityContext:
+        fsGroup: 1001
+      containers:
+      - name: torn-oc-history
+        image: localhost:32000/torn-oc-history:0.0.1
+        env:
+        - name: LOGLEVEL
+          value: "warn"
+        - name: ENV
+          value: "production"
+        # Example of passing flags as args (uncomment & edit as desired)
+        # args: ["--output", "sheets", "--interval", "5m", "--both"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "50Mi"
+          limits:
+            cpu: "100m"
+            memory: "100Mi"
+        volumeMounts:
+        - name: env-file
+          mountPath: /.env
+          subPath: .env
+          readOnly: true
+        - name: credentials-file
+          mountPath: /credentials.json
+          subPath: credentials.json
+          readOnly: true
+      volumes:
+      - name: env-file
+        secret:
+          secretName: torn-history-secrets
+          items:
+          - key: .env
+            path: .env
+      - name: credentials-file
+        secret:
+          secretName: torn-history-secrets
+          items:
+          - key: credentials.json
+            path: credentials.json 

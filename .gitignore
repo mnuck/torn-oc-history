@@ -27,3 +27,4 @@ go.work
 *.swo 
 
 torn-oc-history
+credentials.json
