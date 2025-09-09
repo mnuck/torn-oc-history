@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"torn-oc-history/internal/config"
 	sheetspkg "torn-oc-history/internal/sheets"
 
 	"github.com/rs/zerolog/log"
@@ -133,34 +133,22 @@ func buildSheetRows(selected map[int]Member, stats MemberStats) [][]interface{} 
 }
 
 func main() {
-	setupEnvironment()
-	ctx := context.Background()
-	// Command-line flags
-	outputDest := flag.String("output", "stdout", "output destination: stdout or sheets")
-	allFlag := flag.Bool("all", false, "Generate report for all faction members")
-	bothFlag := flag.Bool("both", false, "Generate both reports (all members and those not in OC)")
-	nocRange := flag.String("range-noc", "History!A1", "Spreadsheet range for members not in OC")
-	allRange := flag.String("range-all", "HistoryAll!A1", "Spreadsheet range for all members report")
-	interval := flag.Duration("interval", 0, "Repeat execution at this interval (e.g. 5m). 0 runs once")
-	flag.Parse()
-
-	if *bothFlag && *allFlag {
-		log.Fatal().Msg("--all and --both cannot be used together")
+	cfg, err := config.New()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load configuration")
 	}
 
+	ctx := context.Background()
+
 	var sheetsClient *sheetspkg.Client
-	if *outputDest == "sheets" {
-		credsFile := "credentials.json" // credentials placed alongside binary
-		var err error
-		sheetsClient, err = sheetspkg.NewClient(ctx, credsFile)
+	if cfg.Output == "sheets" {
+		sheetsClient, err = sheetspkg.NewClient(ctx, cfg.CredentialsFile)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to create sheets client")
 		}
-	} else if *outputDest != "stdout" {
-		log.Fatal().Msg("--output must be either 'stdout' or 'sheets'")
 	}
 
-	apiKey := getRequiredEnv("TORN_API_KEY")
+	apiKey := cfg.TornAPIKey
 	baseURL := "https://api.torn.com/v2"
 
 	runReports := func() {
@@ -183,15 +171,15 @@ func main() {
 		}
 
 		var selected map[int]Member
-		if *bothFlag {
+		if cfg.Both {
 			selected = selectedNoOC // used for empty check only
-		} else if *allFlag {
+		} else if cfg.All {
 			selected = selectedAll
 		} else {
 			selected = selectedNoOC
 		}
 
-		if len(selected) == 0 && !*bothFlag {
+		if len(selected) == 0 && !cfg.Both {
 			fmt.Println("No matching faction members found.")
 			return
 		}
@@ -224,48 +212,46 @@ func main() {
 			}
 		}
 
-		if *bothFlag {
-			if *outputDest == "stdout" {
+		if cfg.Both {
+			if cfg.Output == "stdout" {
 				fmt.Println("=== Members not in OC ===")
 				printReport(selectedNoOC, statsAll)
 				fmt.Println("\n=== All Members ===")
 				printReport(selectedAll, statsAll)
 			} else {
-				spreadsheetID := getRequiredEnv("SPREADSHEET_ID")
 				rowsNoOC := buildSheetRows(selectedNoOC, statsAll)
-				if err := sheetsClient.ClearRange(ctx, spreadsheetID, *nocRange); err != nil {
+				if err := sheetsClient.ClearRange(ctx, cfg.SpreadsheetID, cfg.RangeNOC); err != nil {
 					log.Error().Err(err).Msg("clear not-in-OC sheet")
 				}
-				if err := sheetsClient.UpdateRange(ctx, spreadsheetID, *nocRange, rowsNoOC); err != nil {
+				if err := sheetsClient.UpdateRange(ctx, cfg.SpreadsheetID, cfg.RangeNOC, rowsNoOC); err != nil {
 					log.Error().Err(err).Msg("write not-in-OC sheet")
 				} else {
 					log.Info().Int("rows", len(rowsNoOC)).Msg("Wrote NOT_IN_OC report to Google Sheet")
 				}
 
 				rowsAll := buildSheetRows(selectedAll, statsAll)
-				if err := sheetsClient.ClearRange(ctx, spreadsheetID, *allRange); err != nil {
+				if err := sheetsClient.ClearRange(ctx, cfg.SpreadsheetID, cfg.RangeAll); err != nil {
 					log.Error().Err(err).Msg("clear ALL sheet")
 				}
-				if err := sheetsClient.UpdateRange(ctx, spreadsheetID, *allRange, rowsAll); err != nil {
+				if err := sheetsClient.UpdateRange(ctx, cfg.SpreadsheetID, cfg.RangeAll, rowsAll); err != nil {
 					log.Error().Err(err).Msg("write ALL sheet")
 				} else {
 					log.Info().Int("rows", len(rowsAll)).Msg("Wrote ALL report to Google Sheet")
 				}
 			}
 		} else {
-			if *outputDest == "stdout" {
+			if cfg.Output == "stdout" {
 				printReport(selected, statsAll)
 			} else {
-				spreadsheetID := getRequiredEnv("SPREADSHEET_ID")
 				rows := buildSheetRows(selected, statsAll)
-				targetRange := *nocRange
-				if *allFlag {
-					targetRange = *allRange
+				targetRange := cfg.RangeNOC
+				if cfg.All {
+					targetRange = cfg.RangeAll
 				}
-				if err := sheetsClient.ClearRange(ctx, spreadsheetID, targetRange); err != nil {
+				if err := sheetsClient.ClearRange(ctx, cfg.SpreadsheetID, targetRange); err != nil {
 					log.Error().Err(err).Msg("clear sheet")
 				}
-				if err := sheetsClient.UpdateRange(ctx, spreadsheetID, targetRange, rows); err != nil {
+				if err := sheetsClient.UpdateRange(ctx, cfg.SpreadsheetID, targetRange, rows); err != nil {
 					log.Error().Err(err).Msg("write sheet")
 				} else {
 					log.Info().Int("rows", len(rows)).Msg("Wrote report to Google Sheet")
@@ -277,8 +263,8 @@ func main() {
 	// first run
 	runReports()
 
-	if *interval > 0 {
-		ticker := time.NewTicker(*interval)
+	if cfg.Interval > 0 {
+		ticker := time.NewTicker(cfg.Interval)
 		defer ticker.Stop()
 		for range ticker.C {
 			runReports()

@@ -18,19 +18,25 @@ spec:
       - name: torn-oc-history
         image: localhost:32000/torn-oc-history:0.0.2
         env:
+        # Legacy environment variables (still supported)
         - name: LOGLEVEL
           value: "warn"
         - name: ENV
           value: "production"
-        # Example of passing flags as args (uncomment & edit as desired)
-        # command: ["/app"]
-        # args: [
-        #   "--output", "sheets",
-        #   "--interval", "5m",
-        #   "--both",
-        #   "--range-noc", "a tab for the not in OC",
-        #   "--range-all", "a tab for the all members"
-        # ]
+        # New Viper-based environment variables (recommended)
+        - name: TORN_OUTPUT
+          value: "sheets"
+        - name: TORN_INTERVAL
+          value: "5m"
+        - name: TORN_BOTH
+          value: "true"
+        - name: TORN_RANGE_NOC
+          value: "History!A1"
+        - name: TORN_RANGE_ALL
+          value: "HistoryAll!A1"
+        # Example: Override credentials file path if needed
+        # - name: TORN_CREDENTIALS_FILE
+        #   value: "/app/credentials.json"
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true

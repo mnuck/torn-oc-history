@@ -57,13 +57,14 @@ This ensures zero downtime by creating new pods before terminating old ones.
 
 ## 6. Runtime configuration
 
-The container accepts flags. Example to run continuously every five minutes writing both reports:
+The application is configured via environment variables. The deployment includes examples for:
 
-```yaml
-args: ["--output","sheets","--interval","5m","--both"]
-```
+* **TORN_OUTPUT=sheets** – Write to Google Sheets instead of stdout
+* **TORN_INTERVAL=5m** – Run continuously every 5 minutes  
+* **TORN_BOTH=true** – Generate both reports (all members and not-in-OC)
+* **TORN_RANGE_NOC** and **TORN_RANGE_ALL** – Target sheet ranges
 
-Uncomment and adjust the `args` section in `deployment.yaml` to suit your needs.
+Edit the `env` section in `deployment.yaml` or update your `.env` file to customize behavior. All command line flags can be set as environment variables using the `TORN_` prefix (see main README for complete mapping).
 
 ## Security considerations
 
