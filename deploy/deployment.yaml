@@ -15,7 +15,7 @@ spec:
       securityContext:
         fsGroup: 1001
       imagePullSecrets:
-      - name: ghcr-secret
+      - name: ghcr-cred
       containers:
       - name: torn-oc-history
         image: ghcr.io/mnuck/torn-oc-history:latest
