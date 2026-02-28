@@ -14,23 +14,27 @@ spec:
     spec:
       securityContext:
         fsGroup: 1001
+      imagePullSecrets:
+      - name: ghcr-secret
       containers:
       - name: torn-oc-history
-        image: localhost:32000/torn-oc-history:0.0.2
+        image: ghcr.io/mnuck/torn-oc-history:latest
+        command: ["/app"]
+        args:
+          - "--output"
+          - "sheets"
+          - "--interval"
+          - "5m"
+          - "--both"
+          - "--range-noc"
+          - "OC History, Truant Members (Jokerz)"
+          - "--range-all"
+          - "OC History, All Members (Jokerz)"
         env:
         - name: LOGLEVEL
           value: "warn"
         - name: ENV
           value: "production"
-        # Example of passing flags as args (uncomment & edit as desired)
-        # command: ["/app"]
-        # args: [
-        #   "--output", "sheets",
-        #   "--interval", "5m",
-        #   "--both",
-        #   "--range-noc", "a tab for the not in OC",
-        #   "--range-all", "a tab for the all members"
-        # ]
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
