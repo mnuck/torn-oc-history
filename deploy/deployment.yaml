@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: torn-oc-history
+  annotations:
+    app.kubernetes.io/source-code: "git@github.com:mnuck/torn-oc-history.git"
 spec:
   replicas: 1
   selector:
