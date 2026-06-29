@@ -2,8 +2,6 @@ module torn-oc-history
 
 go 1.26.4
 
-require github.com/rs/zerolog v1.35.1
-
 require (
 	cloud.google.com/go/auth v0.20.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
@@ -31,8 +29,6 @@ require (
 )
 
 require (
-	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	google.golang.org/api v0.282.0
 )
