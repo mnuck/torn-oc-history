@@ -2,10 +2,7 @@ module torn-oc-history
 
 go 1.26.4
 
-require (
-	github.com/joho/godotenv v1.5.1
-	github.com/rs/zerolog v1.35.1
-)
+require github.com/rs/zerolog v1.35.1
 
 require (
 	cloud.google.com/go/auth v0.20.0 // indirect
