@@ -6,14 +6,14 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"time"
 
 	sheetspkg "torn-oc-history/internal/sheets"
-
-	"github.com/rs/zerolog/log"
 )
 
 type Member struct {
@@ -145,7 +145,8 @@ func main() {
 	flag.Parse()
 
 	if *bothFlag && *allFlag {
-		log.Fatal().Msg("--all and --both cannot be used together")
+		slog.Error("--all and --both cannot be used together")
+		os.Exit(1)
 	}
 
 	var sheetsClient *sheetspkg.Client
@@ -154,10 +155,12 @@ func main() {
 		var err error
 		sheetsClient, err = sheetspkg.NewClient(ctx, credsFile)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to create sheets client")
+			slog.Error("Failed to create sheets client", "error", err)
+			os.Exit(1)
 		}
 	} else if *outputDest != "stdout" {
-		log.Fatal().Msg("--output must be either 'stdout' or 'sheets'")
+		slog.Error("--output must be either 'stdout' or 'sheets'")
+		os.Exit(1)
 	}
 
 	apiKey := getRequiredEnv("TORN_API_KEY")
@@ -166,7 +169,7 @@ func main() {
 	runReports := func() {
 		members, err := fetchMembers(baseURL, apiKey)
 		if err != nil {
-			log.Error().Err(err).Msg("fetch members")
+			slog.Error("fetch members", "error", err)
 			return
 		}
 
@@ -198,7 +201,7 @@ func main() {
 
 		crimes, err := fetchAllCrimes(baseURL, apiKey)
 		if err != nil {
-			log.Error().Err(err).Msg("fetch crimes")
+			slog.Error("fetch crimes", "error", err)
 			return
 		}
 
@@ -234,22 +237,22 @@ func main() {
 				spreadsheetID := getRequiredEnv("SPREADSHEET_ID")
 				rowsNoOC := buildSheetRows(selectedNoOC, statsAll)
 				if err := sheetsClient.ClearRange(ctx, spreadsheetID, *nocRange); err != nil {
-					log.Error().Err(err).Msg("clear not-in-OC sheet")
+					slog.Error("clear not-in-OC sheet", "error", err)
 				}
 				if err := sheetsClient.UpdateRange(ctx, spreadsheetID, *nocRange, rowsNoOC); err != nil {
-					log.Error().Err(err).Msg("write not-in-OC sheet")
+					slog.Error("write not-in-OC sheet", "error", err)
 				} else {
-					log.Info().Int("rows", len(rowsNoOC)).Msg("Wrote NOT_IN_OC report to Google Sheet")
+					slog.Info("Wrote NOT_IN_OC report to Google Sheet", "rows", len(rowsNoOC))
 				}
 
 				rowsAll := buildSheetRows(selectedAll, statsAll)
 				if err := sheetsClient.ClearRange(ctx, spreadsheetID, *allRange); err != nil {
-					log.Error().Err(err).Msg("clear ALL sheet")
+					slog.Error("clear ALL sheet", "error", err)
 				}
 				if err := sheetsClient.UpdateRange(ctx, spreadsheetID, *allRange, rowsAll); err != nil {
-					log.Error().Err(err).Msg("write ALL sheet")
+					slog.Error("write ALL sheet", "error", err)
 				} else {
-					log.Info().Int("rows", len(rowsAll)).Msg("Wrote ALL report to Google Sheet")
+					slog.Info("Wrote ALL report to Google Sheet", "rows", len(rowsAll))
 				}
 			}
 		} else {
@@ -263,12 +266,12 @@ func main() {
 					targetRange = *allRange
 				}
 				if err := sheetsClient.ClearRange(ctx, spreadsheetID, targetRange); err != nil {
-					log.Error().Err(err).Msg("clear sheet")
+					slog.Error("clear sheet", "error", err)
 				}
 				if err := sheetsClient.UpdateRange(ctx, spreadsheetID, targetRange, rows); err != nil {
-					log.Error().Err(err).Msg("write sheet")
+					slog.Error("write sheet", "error", err)
 				} else {
-					log.Info().Int("rows", len(rows)).Msg("Wrote report to Google Sheet")
+					slog.Info("Wrote report to Google Sheet", "rows", len(rows))
 				}
 			}
 		}
